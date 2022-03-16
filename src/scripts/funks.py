@@ -14,8 +14,9 @@ class Funks:
 		self.switches = {}
 		self.particles = []
 		self.shakes = []
-  
-		self.font_path = "Multi4Row/src/fonts/Hack-Bold.ttf"
+
+		
+		self.font_path = "src/fonts/Hack-Bold.ttf"
   
 		self.switch_on_path = "./data/imgs/switch_on.png"
 		self.switch_off_path = "./data/imgs/switch_off.png"
@@ -296,13 +297,17 @@ class Funks:
 			mask_surf.set_at(pixel, (255, 255, 255))
 		mask_surf.set_colorkey((0, 0, 0))
 		if l:
-			surf.blit(mask_surf, (loc[0]-thickness, loc[1]))
+			for i in range(thickness):
+				surf.blit(mask_surf, (loc[0]-i, loc[1]))
 		if r:
-			surf.blit(mask_surf, (loc[0]+thickness, loc[1]))
+			for i in range(thickness):
+				surf.blit(mask_surf, (loc[0]+i, loc[1]))
 		if u:
-			surf.blit(mask_surf, (loc[0], loc[1]-thickness))
+			for i in range(thickness):
+				surf.blit(mask_surf, (loc[0], loc[1]-i))
 		if d:
-			surf.blit(mask_surf, (loc[0], loc[1]+thickness))
+			for i in range(thickness):
+				surf.blit(mask_surf, (loc[0], loc[1]+i))
 		
 	def fill_img_with_color(self, img, color):
 		#goes through every pixel in image, and fills in the new color with the same alpha value
@@ -315,3 +320,13 @@ class Funks:
 			
 		return img
 	 
+	def schachmuster(self, grid_size_px, grid_size_cells, color1, color2):
+		board = pygame.Surface((grid_size_px, grid_size_px))
+		board.fill(color1)
+		for x in range(0, int(grid_size_px/grid_size_cells), 2):
+			for y in range(0, int(grid_size_px/grid_size_cells), 2):
+				pygame.draw.rect(board, color2, (x*grid_size_cells, y*grid_size_cells, grid_size_cells, grid_size_cells))
+		for i in range(1, int(grid_size_px/grid_size_cells), 2):
+			for j in range(1, int(grid_size_px/grid_size_cells), 2):
+				pygame.draw.rect(board, color2, (i*grid_size_cells, j*grid_size_cells, grid_size_cells, grid_size_cells))
+		return board
