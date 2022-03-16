@@ -289,6 +289,34 @@ class Funks:
 	def flipswitchstate(self, name):
 		self.switches[name][-1] = not self.switches[name][-1]
   
+	def draw_screenshake(self, screen, surf, dt, FPS):
+		#[[locx, locy], [ax, ay], timetick, time, starttime]
+		if len(self.shakes) > 0:
+			for i, shake in sorted(enumerate(self.shakes), reverse=True):
+				if random.randint(0,1) == 0:
+					shake[0][0] += (shake[1][0]/random.randint(1,2))
+					shake[0][1] += (shake[1][1]/random.randint(1,2))
+				else:
+					shake[0][0] -= (shake[1][0]/random.randint(1,2))
+					shake[0][1] -= (shake[1][1]/random.randint(1,2))
+
+				shake[3] -= shake[2] * dt * FPS
+				screen.blit(surf, (shake[0][0], shake[0][1]))
+				if shake[3] < 0:
+					self.shakes.pop(i)
+		else:
+			screen.blit(surf, (0, 0))
+	
+	def draw_particles(self, screen, timetick, dt, fps):
+		#[[locx, locy], [ax, ay], t]
+		for i, particle in sorted(enumerate(self.particles), reverse=True):
+			particle[0][0] += particle[1][0]
+			particle[0][1] += particle[1][1]
+			particle[2] -= timetick * dt * fps
+			pygame.draw.circle(screen, particle[3], particle[0], particle[2])
+			if particle[2] <= 0:
+				self.particles.pop(i)
+
 	def outline(self, img, loc, surf, thickness = 1, u = True, d = True, l = True, r = True):
 		mask = pygame.mask.from_surface(img)
 		mask_outline = mask.outline()
