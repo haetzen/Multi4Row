@@ -1,6 +1,5 @@
 import pygame, time, sys, random
 
-from torch import rand
 from imgs import Imgs
 from funks import Funks
 from player import Player, OtherPlayer
