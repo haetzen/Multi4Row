@@ -91,6 +91,13 @@ class Client:
 
 			winner = self.check_win()
 			if winner != 0.0:
+				if winner == 1:
+					self.p1.win_particles()
+				else:
+					for p in self.other_players:
+						if p.id == winner:
+							p.win_particles()
+       
 				self.FUNKS.createtext("winner_text", [0, -int(self.screen_size[0]//24 //0.8)], self.screen_size[0]//24, "Player: "+str(winner)+" Won!", (187, 187, 187))
 				self.win = True
    
@@ -105,7 +112,7 @@ class Client:
 	
 	def players(self):
 		if self.p1.ready_to_reset:
-			self.p1 = Player(self.client_id, self.start_pos, 0, self.colors["yellow"], self.gridsize, self.cellsize, self.offset_grid, self.screen_size, self.FUNKS, self.MAP)
+			self.p1 = Player(self.client_id, (self.p1.x, self.start_pos[1]), self.p1.gridpos_x, self.colors["yellow"], self.gridsize, self.cellsize, self.offset_grid, self.screen_size, self.FUNKS, self.MAP)
 			self.player_turn += 1
 			self.FUNKS.shakes.append([[0,0],[random.randint(-5, 5), random.randint(-5, 5)], 0.5, 2, 2])
 			if self.player_turn > len(self.other_players)+1:
@@ -117,15 +124,15 @@ class Client:
 		for i, p in sorted(enumerate(self.other_players), reverse = True):
 			p.move(self.dt, self.FPS)
 			if p.ready_to_reset:
-				ids_to_add.append(p.id)
+				ids_to_add.append([p.id, p.x, p.gridpos_x])
 				self.other_players.pop(i)
 				self.FUNKS.shakes.append([[0,0],[random.randint(-5, 5), random.randint(-5, 5)], 0.5, 2, 2])
 				self.player_turn += 1
 				if self.player_turn > len(self.other_players)+1:
 					self.player_turn = 1
 		for i in ids_to_add:
-			self.other_players.append(OtherPlayer(i, self.start_pos, 0, self.colors[self.colors_to_id[i]], self.gridsize, self.cellsize, self.offset_grid, self.screen_size, self.FUNKS, self.MAP))
-
+			self.other_players.append(OtherPlayer(i[0], (i[1], self.start_pos[1]), i[2], self.colors[self.colors_to_id[i[0]]], self.gridsize, self.cellsize, self.offset_grid, self.screen_size, self.FUNKS, self.MAP))
+			
 		
 
 		self.turn_system()
@@ -179,8 +186,11 @@ class Client:
 		for y, line in enumerate(self.MAP.game_map):
 			for x, chip in enumerate(line):
 				if chip != 0.0:
-					rect = (x * self.cellsize + self.offset_grid, y * self.cellsize + self.offset_grid, self.cellsize, self.cellsize)
-					pygame.draw.rect(self.buffer_screen, self.colors[self.colors_to_id[chip]], rect)
+					#rect = (x * self.cellsize + self.offset_grid, y * self.cellsize + self.offset_grid, self.cellsize, self.cellsize)
+					#pygame.draw.rect(self.buffer_screen, self.colors[self.colors_to_id[chip]], rect)
+					pygame.draw.circle(self.buffer_screen, self.colors[self.colors_to_id[chip]], (x * self.cellsize + self.offset_grid + (self.cellsize/2) , y * self.cellsize + self.offset_grid + (self.cellsize /2)), self.cellsize/2)
+		
+		
 	 
 	def render_win(self):
 		if self.winning_screen_timer_var > 0:

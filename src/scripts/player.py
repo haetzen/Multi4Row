@@ -14,6 +14,7 @@ class Player:
 		self.color = color
 		self.MAP = map
 		self.rect = (self.x, self.y, self.width, self.height)
+		
 
 		self.lock_movement = False
 		self.lock_fall = True
@@ -40,26 +41,36 @@ class Player:
 			elif self.y + (self.velocity * dt * target_fps) > self.target[1] * self.cellsize + self.offset_grid:
 				self.y = self.target[1] * self.cellsize + self.offset_grid
 				self.MAP.game_map[self.target[1]][self.target[0]] = self.id
+				self.smash_particles()
 				self.ready_to_reset = True
+				
     
 			elif self.target[1] * self.cellsize + self.offset_grid == self.y:
 				self.MAP.game_map[self.target[1]][self.target[0]] = self.id
+				self.smash_particles()
 				self.ready_to_reset = True
+				
 		
 		surf = pygame.Surface((self.width, self.height))
-		surf.fill(self.color)
+		surf.fill((0, 0, 0))
+		pygame.draw.circle(surf, self.color, (self.width/2, self.height/2), self.width/2)
+		surf.set_colorkey((0, 0, 0))
 		self.FUNKS.outline(surf, (self.x, self.y), screen, 2)
 		screen.blit(surf, (self.x, self.y))
 			
 	def fall_particles(self):
-		for i in range(5):
-			self.FUNKS.particles.append([[self.x + (self.cellsize/2), self.y], [random.randint(-10, 10)/10, random.randint(-10, 10)/10 ], random.randint(2, (int) (self.cellsize/2)), self.color])
+		for i in range(2):
+			self.FUNKS.particles.append([[self.x + (self.cellsize/2), self.y], [random.randint(-10, 10)/10, random.randint(-10, 1)/10 ], random.randint(2, (int) (self.cellsize/2)), self.color])
 	
 	def smash_particles(self):
-		pass
+		for i in range(10):
+			self.FUNKS.particles.append([[self.x + (self.cellsize/2), self.y + self.cellsize], [random.randint(-20, 20)/10, random.randint(-1, 1)/10 ], random.randint(2, (int) (self.cellsize/3)), self.color])
+	
 
 	def win_particles(self):
-		pass
+		for i in range(100):
+			self.FUNKS.particles.append([[self.offset_grid + (self.gridsize/2), self.offset_grid + (self.gridsize/2)], [random.randint(-60, 60)/10, random.randint(-60, 60)/10 ], random.randint(30, 100), self.color])
+	
 	
 	def move(self, dt, target_fps):
 		e = pygame.key.get_pressed()
@@ -139,28 +150,36 @@ class OtherPlayer:
 			elif self.y + (self.velocity * dt * target_fps) > self.target[1] * self.cellsize + self.offset_grid:
 				self.y = self.target[1] * self.cellsize + self.offset_grid
 				self.MAP.game_map[self.target[1]][self.target[0]] = self.id
+				self.smash_particles()
 				self.ready_to_reset = True
     
 			elif self.target[1] * self.cellsize + self.offset_grid == self.y:
 				self.MAP.game_map[self.target[1]][self.target[0]] = self.id
 				self.FUNKS.shakes.append([[0,0],[random.randint(-30, 30), random.randint(-30, 30)], 0.5, 10, 10])
-
+				self.smash_particles()
 				self.ready_to_reset = True
 		
 		surf = pygame.Surface((self.width, self.height))
-		surf.fill(self.color)
+		surf.fill((0, 0, 0))
+		pygame.draw.circle(surf, self.color, (self.width/2, self.height/2), self.width/2)
+		surf.set_colorkey((0, 0, 0))
 		self.FUNKS.outline(surf, (self.x, self.y), screen, 2)
 		screen.blit(surf, (self.x, self.y))
+		
   
 	def fall_particles(self):
-		for i in range(5):
-			self.FUNKS.particles.append([[self.x + (self.cellsize/2), self.y], [random.randint(-10, 10)/10, random.randint(-10, 10)/10 ], random.randint(2, (int) (self.cellsize/2)), self.color])
+		for i in range(2):
+			self.FUNKS.particles.append([[self.x + (self.cellsize/2), self.y], [random.randint(-10, 10)/10, random.randint(-10, 1)/10 ], random.randint(2, (int) (self.cellsize/2)), self.color])
 	
 	def smash_particles(self):
-		pass
+		for i in range(10):
+			self.FUNKS.particles.append([[self.x + (self.cellsize/2), self.y + self.cellsize], [random.randint(-20, 20)/10, random.randint(-1, 1)/10 ], random.randint(2, (int) (self.cellsize/3)), self.color])
+	
 
 	def win_particles(self):
-		pass
+		for i in range(100):
+			self.FUNKS.particles.append([[self.offset_grid + (self.gridsize/2), self.offset_grid + (self.gridsize/2)], [random.randint(-60, 60)/10, random.randint(-60, 60)/10 ], random.randint(30, 100), self.color])
+	
 
 	def move(self, dt, target_fps):
 		e = pygame.key.get_pressed()
