@@ -50,12 +50,15 @@ class Client:
 		
 		self.offset_grid = 80
 		self.gridsize = self.screen_size[0] - (2 * self.offset_grid)
-	
-		self.cellsize = self.gridsize / self.MAP.map_dimensions[0]
+
+		self.grid_border_thickness = 4
+		self.cellsize = int(self.gridsize / self.MAP.map_dimensions[0])
 		self.grid_surf = self.FUNKS.schachmuster(self.gridsize, self.cellsize, self.colors["background"], self.colors["darker_background"])
-		self.FUNKS.outline(self.grid_surf, (0, 0), self.grid_surf, 4)		
-  
-		self.N = Network()
+		self.grid_border_surf = pygame.Surface((self.gridsize + ( 2 * self.grid_border_thickness), self.gridsize + ( 2 * self.grid_border_thickness)))
+		self.grid_border_surf.fill(self.colors["white"])
+		
+		
+		#self.N = Network()
 		self.client_id = 1
 		
 
@@ -170,7 +173,10 @@ class Client:
 		pygame.display.flip()
 	
 	def render_grid(self):
+		self.buffer_screen.blit(self.grid_border_surf, (self.offset_grid - self.grid_border_thickness, self.offset_grid - self.grid_border_thickness))
 		self.buffer_screen.blit(self.grid_surf, (self.offset_grid, self.offset_grid))
+		
+		
 		for y, line in enumerate(self.MAP.game_map):
 			for x, chip in enumerate(line):
 				if chip != 0.0:

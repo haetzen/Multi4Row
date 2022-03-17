@@ -316,8 +316,9 @@ class Funks:
 			pygame.draw.circle(screen, particle[3], particle[0], particle[2])
 			if particle[2] <= 0:
 				self.particles.pop(i)
-
-	def outline(self, img, loc, surf, thickness = 1, u = True, d = True, l = True, r = True):
+    
+	@staticmethod
+	def outline(img, loc, surf, thickness = 1, u = True, d = True, l = True, r = True):
 		mask = pygame.mask.from_surface(img)
 		mask_outline = mask.outline()
 		mask_surf = pygame.Surface(img.get_size())
@@ -336,8 +337,9 @@ class Funks:
 		if d:
 			for i in range(thickness):
 				surf.blit(mask_surf, (loc[0], loc[1]+i))
-		
-	def fill_img_with_color(self, img, color):
+	
+	@staticmethod
+	def fill_img_with_color(img, color):
 		#goes through every pixel in image, and fills in the new color with the same alpha value
 		w, h = img.get_size()
 		r, g, b, _ = color
@@ -347,8 +349,9 @@ class Funks:
 				img.set_at((x, y), pygame.Color(r, g, b, a))
 			
 		return img
-	 
-	def schachmuster(self, grid_size_px, grid_size_cells, color1, color2):
+	
+	@staticmethod
+	def schachmuster(grid_size_px, grid_size_cells, color1, color2):
 		board = pygame.Surface((grid_size_px, grid_size_px))
 		board.fill(color1)
 		for x in range(0, int(grid_size_px/grid_size_cells), 2):
