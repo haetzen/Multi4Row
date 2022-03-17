@@ -74,7 +74,7 @@ class Player:
 		if (e[pygame.K_RIGHT] or e[pygame.K_d]) and self.click_cooldown_var >= self.click_cooldown_val and not self.lock_movement: 
 			self.x += self.cellsize
 			self.gridpos_x += 1
-			if self.x > self.screen_size[0] - self.offset_grid - self.cellsize:
+			if self.x >= self.screen_size[0] - self.offset_grid - self.cellsize:
 				self.x = self.screen_size[0] - self.offset_grid - self.cellsize
 				self.gridpos_x = self.MAP.map_dimensions[0] -1
 			self.click_cooldown_var = 0
