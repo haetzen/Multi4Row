@@ -56,19 +56,19 @@ class Client:
 		self.grid_border_surf = pygame.Surface((self.gridsize + ( 2 * self.grid_border_thickness), self.gridsize + ( 2 * self.grid_border_thickness)))
 		self.grid_border_surf.fill(self.colors["white"])
 		
-		
-		#self.N = Network()
+		########################### NETWORKING STUFF ############################################################################
+		self.N = Network()
 		self.client_id = 1
 		
 
 		
 
-		#self.start_pos = self.read_pos(self.N.get_pos())
-		self.start_pos = (self.offset_grid, self.offset_grid - self.cellsize - 10)        
-		self.p1 = Player(self.client_id, self.start_pos, 0, self.colors[self.colors_to_id[self.client_id]], self.gridsize, self.cellsize, self.offset_grid, self.screen_size, self.FUNKS, self.MAP)
+		self.start_pos = self.read_pos(self.N.get_pos())
+		#self.start_pos = (self.offset_grid, self.offset_grid - self.cellsize - 10)        
+		self.p0 = Player(self.client_id, self.start_pos, 0, self.colors[self.colors_to_id[self.client_id]], self.gridsize, self.cellsize, self.offset_grid, self.screen_size, self.FUNKS, self.MAP)
 		
 		self.other_players = []
-		self.other_players.append(OtherPlayer(2, self.start_pos, 0, self.colors[self.colors_to_id[2]], self.gridsize, self.cellsize, self.offset_grid, self.screen_size, self.FUNKS, self.MAP))
+		self.other_players.append(OtherPlayer(2, (self.offset_grid, self.offset_grid - self.cellsize - 10) , 0, self.colors[self.colors_to_id[2]], self.gridsize, self.cellsize, self.offset_grid, self.screen_size, self.FUNKS, self.MAP))
 		self.starting_player = random.randint(1, len(self.other_players))
 		self.player_turn = self.starting_player
 		
@@ -92,7 +92,7 @@ class Client:
 			winner = self.check_win()
 			if winner != 0.0:
 				if winner == 1:
-					self.p1.win_particles()
+					self.p0.win_particles()
 				else:
 					for p in self.other_players:
 						if p.id == winner:
@@ -102,6 +102,11 @@ class Client:
 				self.win = True
    
 			self.render()
+	
+	def networking(self):
+		p2_pos = self.read_pos(self.N.send(self.make_pos((self.p0.x, self.p0.y))))
+		self.other_players[0].x, self.other_players[0].y = p2_pos
+		
 			
 	def clock_tick(self):
 		self.clock.tick(self.FPS)
@@ -111,14 +116,14 @@ class Client:
 		self.FUNKS.createtext("fps_display", [int(self.screen_size[0]*(850/1920)), -self.screen_size[1]//2.05], int(self.screen_size[1]*(20/1080)), "FPS: "+str(round(self.clock.get_fps(), 2)), (255, 124, 0))
 	
 	def players(self):
-		if self.p1.ready_to_reset:
-			self.p1 = Player(self.client_id, (self.p1.x, self.start_pos[1]), self.p1.gridpos_x, self.colors["yellow"], self.gridsize, self.cellsize, self.offset_grid, self.screen_size, self.FUNKS, self.MAP)
+		if self.p0.ready_to_reset:
+			self.p0 = Player(self.client_id, (self.p0.x, self.start_pos[1]), self.p0.gridpos_x, self.colors["yellow"], self.gridsize, self.cellsize, self.offset_grid, self.screen_size, self.FUNKS, self.MAP)
 			self.player_turn += 1
 			self.FUNKS.shakes.append([[0,0],[random.randint(-5, 5), random.randint(-5, 5)], 0.5, 2, 2])
 			if self.player_turn > len(self.other_players)+1:
 				self.player_turn = 1
     
-		self.p1.move(self.dt, self.FPS)		
+		self.p0.move(self.dt, self.FPS)		
 
 		ids_to_add = []
 		for i, p in sorted(enumerate(self.other_players), reverse = True):
@@ -139,10 +144,10 @@ class Client:
 		
   
 	def turn_system(self):
-		if self.p1.id != self.player_turn:
-			self.p1.lock_fall = True
+		if self.p0.id != self.player_turn:
+			self.p0.lock_fall = True
 		else:
-			self.p1.lock_fall = False
+			self.p0.lock_fall = False
 		
 		for p in self.other_players:
 			if p.id != self.player_turn:
@@ -155,7 +160,7 @@ class Client:
 		for p in self.other_players:
 			p.render(self.buffer_screen, self.dt, self.FPS)
    
-		self.p1.render(self.buffer_screen, self.dt, self.FPS)
+		self.p0.render(self.buffer_screen, self.dt, self.FPS)
 		
 	def window_events(self):
 		for event in pygame.event.get():
@@ -207,21 +212,33 @@ class Client:
 		for y, line in sorted(enumerate(self.MAP.game_map), reverse = True): #starting bottom left
 			for x, chip in enumerate(line):
 				if chip != 0:
-					if y >= 4:
+					try:
 						if chip == self.MAP.game_map[y-1][x] and self.MAP.game_map[y-2][x] == chip and self.MAP.game_map[y-3][x] == chip:
 							return chip
-					if x <= self.MAP.map_dimensions[0]-1 -4:
+					except IndexError:
+						pass
+						
+					try:
 						if chip == self.MAP.game_map[y][x+1] and self.MAP.game_map[y][x+2] == chip and self.MAP.game_map[y][x+3] == chip:
 							return chip
-					if y >= 4 and x <= self.MAP.map_dimensions[0]-1 -4:
+					except IndexError:
+						pass
+					try:
 						if chip == self.MAP.game_map[y-1][x+1] and self.MAP.game_map[y-2][x+2] == chip and self.MAP.game_map[y-3][x+3] == chip:
 							return chip
-					if x >= 4:
+					except IndexError:
+						pass
+  
+					try:
 						if chip == self.MAP.game_map[y][x-1] and self.MAP.game_map[y][x-2] == chip and self.MAP.game_map[y][x-3] == chip:
 							return chip
-					if x >= 4 and y >= 4:
+					except IndexError:
+						pass
+					try:
 						if chip == self.MAP.game_map[y-1][x-1] and self.MAP.game_map[y-2][x-2] == chip and self.MAP.game_map[y-3][x-3] == chip:
 							return chip
+					except IndexError:
+						pass
 		return 0
 
 	

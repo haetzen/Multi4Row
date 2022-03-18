@@ -55,12 +55,11 @@ class Player:
 		surf.fill((0, 0, 0))
 		pygame.draw.circle(surf, self.color, (self.width/2, self.height/2), self.width/2)
 		surf.set_colorkey((0, 0, 0))
-		self.FUNKS.outline(surf, (self.x, self.y), screen, 2)
+		self.FUNKS.outline(surf, (self.x, self.y), screen, 4, self.lock_fall and (255, 255, 255) or (0, 255, 0))
 		screen.blit(surf, (self.x, self.y))
 			
 	def fall_particles(self):
-		for i in range(2):
-			self.FUNKS.particles.append([[self.x + (self.cellsize/2), self.y], [random.randint(-10, 10)/10, random.randint(-10, 1)/10 ], random.randint(2, (int) (self.cellsize/2)), self.color])
+		self.FUNKS.particles.append([[self.x + (self.cellsize/2), self.y], [random.randint(-10, 10)/10, random.randint(-10, 1)/10 ], random.randint(2, (int) (self.cellsize/2)), self.color])
 	
 	def smash_particles(self):
 		for i in range(10):
@@ -127,6 +126,7 @@ class OtherPlayer:
 		self.rect = (self.x, self.y, self.width, self.height)
 
 		self.lock_movement = False
+		self.lock_fall = True
 		self.dropping = False
 		self.target = (-1, -1)
 		self.ready_to_reset = False
@@ -163,13 +163,12 @@ class OtherPlayer:
 		surf.fill((0, 0, 0))
 		pygame.draw.circle(surf, self.color, (self.width/2, self.height/2), self.width/2)
 		surf.set_colorkey((0, 0, 0))
-		self.FUNKS.outline(surf, (self.x, self.y), screen, 2)
+		self.FUNKS.outline(surf, (self.x, self.y), screen, 4, self.lock_fall and (255, 255, 255) or (0, 255, 0))
 		screen.blit(surf, (self.x, self.y))
 		
   
 	def fall_particles(self):
-		for i in range(2):
-			self.FUNKS.particles.append([[self.x + (self.cellsize/2), self.y], [random.randint(-10, 10)/10, random.randint(-10, 1)/10 ], random.randint(2, (int) (self.cellsize/2)), self.color])
+		self.FUNKS.particles.append([[self.x + (self.cellsize/2), self.y], [random.randint(-10, 10)/10, random.randint(-10, 1)/10 ], random.randint(2, (int) (self.cellsize/2)), self.color])
 	
 	def smash_particles(self):
 		for i in range(10):

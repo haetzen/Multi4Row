@@ -15,8 +15,11 @@ class Funks:
 		self.particles = []
 		self.shakes = []
 
-		
-		self.font_path = "src/fonts/Hack-Bold.ttf"
+		try:
+			self.font_path = "src/fonts/Hack-Bold.ttf"
+			self.font_path = "H:/GitRepos/Multi4Row/src/fonts/Hack-Bold.ttf"
+		except:
+			pass
   
 		self.switch_on_path = "./data/imgs/switch_on.png"
 		self.switch_off_path = "./data/imgs/switch_off.png"
@@ -318,12 +321,12 @@ class Funks:
 				self.particles.pop(i)
     
 	@staticmethod
-	def outline(img, loc, surf, thickness = 1, u = True, d = True, l = True, r = True):
+	def outline(img, loc, surf, thickness = 1, color = (255, 255, 255), u = True, d = True, l = True, r = True):
 		mask = pygame.mask.from_surface(img)
 		mask_outline = mask.outline()
 		mask_surf = pygame.Surface(img.get_size())
 		for pixel in mask_outline:
-			mask_surf.set_at(pixel, (255, 255, 255))
+			mask_surf.set_at(pixel, color)
 		mask_surf.set_colorkey((0, 0, 0))
 		if l:
 			for i in range(thickness):
@@ -337,6 +340,20 @@ class Funks:
 		if d:
 			for i in range(thickness):
 				surf.blit(mask_surf, (loc[0], loc[1]+i))
+		if u and l:
+			for i in range(thickness -1):
+				surf.blit(mask_surf, (loc[0]-i, loc[1]-i))
+		if u and r:
+			for i in range(thickness -1):
+				surf.blit(mask_surf, (loc[0]+i, loc[1]-i))
+
+		if d and l:
+			for i in range(thickness -1):
+				surf.blit(mask_surf, (loc[0]-i, loc[1]+i))
+		if d and r:
+			for i in range(thickness -1):
+				surf.blit(mask_surf, (loc[0]+i, loc[1]+i))
+			
 	
 	@staticmethod
 	def fill_img_with_color(img, color):

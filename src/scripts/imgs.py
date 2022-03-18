@@ -9,6 +9,7 @@ class Imgs():
         #print(os.getcwd())
         try:
             self.icon = pygame.image.load("src/img/icon.png").convert_alpha()
-
+            
         except:
-           print("Error loading imgs")
+            self.icon = pygame.image.load("H:/GitRepos/Multi4Row/src/img/icon.png").convert_alpha()
+            print("Error loading imgs")
