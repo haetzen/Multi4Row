@@ -1,4 +1,5 @@
-import pygame, time, sys, random
+from socket import socket
+import pygame, time, sys, random, socket, threading
 
 from imgs import Imgs
 from funks import Funks
@@ -10,14 +11,27 @@ from network import Network
 
 class Client:
 	
-	def __init__(self):
-		self.reload()
+	def __init__(self, hosting):
+		#host = "192.168.56.1"
+		#port = 5555
+		#player_num = 2
+		#threading.Thread(target = self.host_game, args = (host, port, player_num, )).start()
+		#self.host_game(host, port, player_num)
+		#threading.Thread(self.connect_to_game, (host,port))
+		#self.connect_to_game(host, port)
+		host = "192.168.56.1"
+		port = 5555
+		player_num = 2
+		if hosting:
+			self.host_game(host, port, player_num)
+		else:
+			self.connect_to_game(host, port)
 	
-	def reload(self):
+	def reload(self, player_id, numb_of_players, starting_player, client):
 		pygame.init()
 		pygame.display.set_caption("Multi4Row")
-		
-		
+		self.client = client
+		self.player_id = player_id
 		
 		self.clock = pygame.time.Clock()
 		self.FPS = 60
@@ -32,14 +46,23 @@ class Client:
 		self.FUNKS = Funks(self.screen_size)
 		
 		self.MAP = Map()
-		
+		if numb_of_players == 2:
+			self.game_map = self.MAP.game_map_2
+			self.map_dimensions = self.MAP.map_dimensions_2
+		elif numb_of_players == 3:
+			self.game_map = self.MAP.game_map_3
+			self.map_dimensions = self.MAP.map_dimensions_3
+		else:
+			self.game_map = self.MAP.game_map_4
+			self.map_dimensions = self.MAP.map_dimensions_4
+   
 		self.FUNKS.createtext("fps_display", [int(self.screen_size[0]*(850/1920)), -self.screen_size[1]//2.05], int(self.screen_size[1]*(20/1080)), "FPS: "+str(round(self.clock.get_fps(), 2)), (255, 124, 0))
 		
 		
 		pygame.display.set_icon(self.IMG.icon)
 		
-		self.colors = {"black": (0, 0, 0), "black2": (24, 27, 15), "yellow": (255,236,0), "blue": (22,127,243), "white": (255, 255, 255), "background": (59, 59, 59), "darker_background": (39, 39, 39), "red": (255, 0, 0)}
-		self.colors_to_id = {1: "yellow", 2: "blue", 3: "red", 4: "green"}		
+		self.colors = {"black": (0, 0, 0), "black2": (24, 27, 15), "yellow": (255,236,0), "blue": (0,85,255), "white": (255, 255, 255), "background": (59, 59, 59), "darker_background": (39, 39, 39), "red": (255, 0, 0), "light_blue": (0, 232, 255), "purple":(104, 0, 255), "pink":(247, 0, 255)}
+		self.colors_to_id = {1: "light_blue", 2: "blue", 3: "pink", 4: "purple"}		
   
 		self.screen.fill(self.colors["background"])
 		self.buffer_screen.fill(self.colors["background"])
@@ -51,25 +74,25 @@ class Client:
 		self.gridsize = self.screen_size[0] - (2 * self.offset_grid)
 
 		self.grid_border_thickness = 4
-		self.cellsize = int(self.gridsize / self.MAP.map_dimensions[0])
+		self.cellsize = int(self.gridsize / self.map_dimensions[0])
 		self.grid_surf = self.FUNKS.schachmuster(self.gridsize, self.cellsize, self.colors["background"], self.colors["darker_background"])
 		self.grid_border_surf = pygame.Surface((self.gridsize + ( 2 * self.grid_border_thickness), self.gridsize + ( 2 * self.grid_border_thickness)))
 		self.grid_border_surf.fill(self.colors["white"])
 		
 		########################### NETWORKING STUFF ############################################################################
-		self.N = Network()
-		self.client_id = 1
 		
-
 		
-
-		self.start_pos = self.read_pos(self.N.get_pos())
-		#self.start_pos = (self.offset_grid, self.offset_grid - self.cellsize - 10)        
-		self.p0 = Player(self.client_id, self.start_pos, 0, self.colors[self.colors_to_id[self.client_id]], self.gridsize, self.cellsize, self.offset_grid, self.screen_size, self.FUNKS, self.MAP)
-		
+		self.start_pos = (self.offset_grid, self.offset_grid - self.cellsize - 10)        
+		self.p0 = Player(self.player_id, self.start_pos, 0, self.colors[self.colors_to_id[self.player_id]], self.gridsize, self.cellsize, self.offset_grid, self.screen_size, self.FUNKS, self.game_map, self.map_dimensions, self.client)
 		self.other_players = []
-		self.other_players.append(OtherPlayer(2, (self.offset_grid, self.offset_grid - self.cellsize - 10) , 0, self.colors[self.colors_to_id[2]], self.gridsize, self.cellsize, self.offset_grid, self.screen_size, self.FUNKS, self.MAP))
-		self.starting_player = random.randint(1, len(self.other_players))
+		for i in range(1, numb_of_players+1):
+			if i != self.player_id:
+				self.other_players.append(OtherPlayer(i, (self.offset_grid, self.offset_grid - self.cellsize - 10) , 0, self.colors[self.colors_to_id[i]], self.gridsize, self.cellsize, self.offset_grid, self.screen_size, self.FUNKS, self.game_map, self.map_dimensions, self.client))
+		
+		
+		
+		
+		self.starting_player = starting_player
 		self.player_turn = self.starting_player
 		
 		
@@ -117,31 +140,29 @@ class Client:
 	
 	def players(self):
 		if self.p0.ready_to_reset:
-			self.p0 = Player(self.client_id, (self.p0.x, self.start_pos[1]), self.p0.gridpos_x, self.colors["yellow"], self.gridsize, self.cellsize, self.offset_grid, self.screen_size, self.FUNKS, self.MAP)
-			self.player_turn += 1
+			self.p0 = Player(self.player_id, (self.p0.x, self.start_pos[1]), self.p0.gridpos_x, self.colors[self.colors_to_id[self.player_id]], self.gridsize, self.cellsize, self.offset_grid, self.screen_size, self.FUNKS, self.game_map, self.map_dimensions, self.client)
 			self.FUNKS.shakes.append([[0,0],[random.randint(-5, 5), random.randint(-5, 5)], 0.5, 2, 2])
-			if self.player_turn > len(self.other_players)+1:
-				self.player_turn = 1
+			self.player_turn += 1
     
 		self.p0.move(self.dt, self.FPS)		
 
 		ids_to_add = []
 		for i, p in sorted(enumerate(self.other_players), reverse = True):
-			p.move(self.dt, self.FPS)
 			if p.ready_to_reset:
 				ids_to_add.append([p.id, p.x, p.gridpos_x])
 				self.other_players.pop(i)
 				self.FUNKS.shakes.append([[0,0],[random.randint(-5, 5), random.randint(-5, 5)], 0.5, 2, 2])
 				self.player_turn += 1
-				if self.player_turn > len(self.other_players)+1:
-					self.player_turn = 1
+				
 		for i in ids_to_add:
-			self.other_players.append(OtherPlayer(i[0], (i[1], self.start_pos[1]), i[2], self.colors[self.colors_to_id[i[0]]], self.gridsize, self.cellsize, self.offset_grid, self.screen_size, self.FUNKS, self.MAP))
+			self.other_players.append(OtherPlayer(i[0], (i[1], self.start_pos[1]), i[2], self.colors[self.colors_to_id[i[0]]], self.gridsize, self.cellsize, self.offset_grid, self.screen_size, self.FUNKS, self.game_map, self.map_dimensions, self.client))
 			
-		
+		if self.player_turn > len(self.other_players)+1:
+			self.player_turn = 1
 
 		self.turn_system()
-		
+	
+	
   
 	def turn_system(self):
 		if self.p0.id != self.player_turn:
@@ -149,6 +170,7 @@ class Client:
 		else:
 			self.p0.lock_fall = False
 		
+		#important bc of color
 		for p in self.other_players:
 			if p.id != self.player_turn:
 				p.lock_fall = True
@@ -188,7 +210,7 @@ class Client:
 		self.buffer_screen.blit(self.grid_surf, (self.offset_grid, self.offset_grid))
 		
 		
-		for y, line in enumerate(self.MAP.game_map):
+		for y, line in enumerate(self.game_map):
 			for x, chip in enumerate(line):
 				if chip != 0.0:
 					#rect = (x * self.cellsize + self.offset_grid, y * self.cellsize + self.offset_grid, self.cellsize, self.cellsize)
@@ -209,33 +231,33 @@ class Client:
 	
 	def check_win(self):
 		
-		for y, line in sorted(enumerate(self.MAP.game_map), reverse = True): #starting bottom left
+		for y, line in sorted(enumerate(self.game_map), reverse = True): #starting bottom left
 			for x, chip in enumerate(line):
 				if chip != 0:
 					try:
-						if chip == self.MAP.game_map[y-1][x] and self.MAP.game_map[y-2][x] == chip and self.MAP.game_map[y-3][x] == chip:
+						if chip == self.game_map[y-1][x] and self.game_map[y-2][x] == chip and self.game_map[y-3][x] == chip:
 							return chip
 					except IndexError:
 						pass
 						
 					try:
-						if chip == self.MAP.game_map[y][x+1] and self.MAP.game_map[y][x+2] == chip and self.MAP.game_map[y][x+3] == chip:
+						if chip == self.game_map[y][x+1] and self.game_map[y][x+2] == chip and self.game_map[y][x+3] == chip:
 							return chip
 					except IndexError:
 						pass
 					try:
-						if chip == self.MAP.game_map[y-1][x+1] and self.MAP.game_map[y-2][x+2] == chip and self.MAP.game_map[y-3][x+3] == chip:
+						if chip == self.game_map[y-1][x+1] and self.game_map[y-2][x+2] == chip and self.game_map[y-3][x+3] == chip:
 							return chip
 					except IndexError:
 						pass
   
 					try:
-						if chip == self.MAP.game_map[y][x-1] and self.MAP.game_map[y][x-2] == chip and self.MAP.game_map[y][x-3] == chip:
+						if chip == self.game_map[y][x-1] and self.game_map[y][x-2] == chip and self.game_map[y][x-3] == chip:
 							return chip
 					except IndexError:
 						pass
 					try:
-						if chip == self.MAP.game_map[y-1][x-1] and self.MAP.game_map[y-2][x-2] == chip and self.MAP.game_map[y-3][x-3] == chip:
+						if chip == self.game_map[y-1][x-1] and self.game_map[y-2][x-2] == chip and self.game_map[y-3][x-3] == chip:
 							return chip
 					except IndexError:
 						pass
@@ -243,16 +265,101 @@ class Client:
 
 	
 	def exitgame(self):
+		self.client.close()
 		pygame.quit()
 		sys.exit()
 		
 	### SERVER FUNCTIONS ###
-	def read_pos(self, st):
+	'''
+	
+	[ , ] -> [" , "]
+	0. -> id
+	1. -> pos_gridx
+	2. -> dropping (True/False)(1/0)
+	
+	["0.", "1.", "2."]
+	["id", "pos_gridx", "dropping"]
+	example: ["1, 0, 0]
+ 
+	from list to str use: make_str(list)
+	from str to list use: list = read_str(str)
+	
+	'''
+ 
+	def host_game(self, host, port, numb_players):
+		server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		try:
+			server.bind((host, port))
+		except socket.error as e:
+			print(e)
+	
+		server.listen(numb_players-1)
+		print("Waiting for connection.. Server started")
+		player_id = 2
+		starting_player = random.randint(1, numb_players)		
+  
+		while True:
+			client, addr = server.accept()
+			print("Connected to: "+ str(addr))
+			self.send_data([player_id, numb_players, starting_player], client)
+			
+			
+			player_id += 1
+			if player_id >= numb_players:
+				break
+		threading.Thread(target=self.reload, args=(1, numb_players, starting_player, client, )).start()
+		server.close()
+
+	
+	def connect_to_game(self, host, port):
+		client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		client.connect((host, port))
+		#must get its own id, numb_of_players, starting_player
+		data = self.recieve_data(client)
+
+
+		threading.Thread(target=self.reload, args=(data[0], data[1], data[2], client, )).start()
+
+ 
+	
+	def send_data(self, data, client, encoding = 'utf-8'):
+		st = self.make_str(data)
+		try:
+			client.send(st.encode(encoding))
+		except:
+			print("Error sending data")
+   
+		print("Sent data.. "+st)
+	
+
+	def recieve_data(self, client, buff_size = 1024, decoding = 'utf-8'):
+		try:
+			data = client.recv(buff_size).decode(decoding)
+			if not data:
+				#client.close()
+				print("Disconnected.. no data received")
+			else:
+				print("Received: "+data)
+				return self.read_str(data)
+
+		except:
+			print("Error while waiting for data")
+			return []
+   
+	
+	def read_str(self, st):
 		st = st.split(",")
-		return (int(st[0]), int(st[1]))  
-	   
-	def make_pos(self, tup):
-		return str(tup[0]) + "," + str(tup[1]) 
-		
-if __name__ =='__main__':
-	Client()
+		ret = []
+		for i in st:
+			ret.append(int(i))
+		return ret
+			
+	
+	def make_str(self, data):
+		ret = ""
+		for i in range(len(data)):
+			ret += str(data[i]) + ","
+		ret = ret.removesuffix(",")
+		return ret
+
+	

@@ -2,6 +2,7 @@ import re
 import socket
 from _thread import *
 
+
 server = "192.168.56.1"
 port = 5555
 
@@ -79,3 +80,4 @@ while True:
 	
 	start_new_thread(threaded_client, (conn, current_player))
 	current_player += 1
+ 
