@@ -17,8 +17,12 @@ class Funks:
 
 		try:
 			self.font_path = "src/fonts/Hack-Bold.ttf"
-			self.font_path = "H:/GitRepos/Multi4Row/src/fonts/Hack-Bold.ttf"
+			
 		except:
+			try:
+				self.font_path = "H:/GitRepos/Multi4Row/src/fonts/Hack-Bold.ttf"
+			except:
+				pass
 			pass
   
 		self.switch_on_path = "./data/imgs/switch_on.png"
