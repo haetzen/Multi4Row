@@ -1,13 +1,16 @@
-import threading, sys
-import tkinter
+import threading, sys, socket
 from client import Client
 from tkinter import * 
 import tkinter as tk
+from urllib.request import urlopen
+import re
 
 from funks import Funks
 
 class Main:
 	def __init__(self):
+     
+		print(f"Ip: {self.get_ip()}")
 		self.tink = tk.Tk()
 		self.tink.title("Select_Gamemode")
 		self.tink.geometry("200x100")
@@ -86,7 +89,19 @@ class Main:
 		#print(f"ip: {ip}, port: {port}, players: {players}")
 		self.c = threading.Thread(target=Client, args = (True, ip, port, players, )).start()
 		sys.exit()
-  
-  
+	
+	
+	def getPublicIp(seöf):
+		data = str(urlopen('http://checkip.dyndns.com/').read())
+		# data = '<html><head><title>Current IP Check</title></head><body>Current IP Address: 65.96.168.198</body></html>\r\n'
+
+		return re.compile(r'Address: (\d+\.\d+\.\d+\.\d+)').search(data).group(1)
+
+	def get_ip(self):
+		s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+		s.connect(('8.8.8.8', 1))  # connect() for UDP doesn't send packets
+		local_ip_address = s.getsockname()[0]
+		return local_ip_address
+	
 if __name__ == '__main__':
 	Main()

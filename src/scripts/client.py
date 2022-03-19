@@ -305,8 +305,7 @@ class Client:
 			pass
 			#print(e)
 
-		listeners = numb_players -1
-		server.listen(listeners)
+		server.listen(numb_players -1)
 		#print("Waiting for connection.. Server started")
 		player_id = 2
 		starting_player = random.randint(1, numb_players)		
