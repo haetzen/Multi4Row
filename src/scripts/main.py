@@ -70,7 +70,7 @@ class Main:
 		self.e2 = tk.Entry(self.tink3)
 		self.e3 = tk.Entry(self.tink3)
   
-		self.e1.insert(0, "192.168.56.1")
+		self.e1.insert(0, str(self.get_ip()))
 		self.e2.insert(0, "5555")
 		self.e3.insert(0, "2")
 		
