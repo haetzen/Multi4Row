@@ -1,3 +1,4 @@
+
 from socket import socket
 import pygame, time, sys, random, socket, threading
 
@@ -5,33 +6,23 @@ from imgs import Imgs
 from funks import Funks
 from player import Player, OtherPlayer
 from map import Map
-from network import Network
-
 
 
 class Client:
 	
-	def __init__(self, hosting):
-		#host = "192.168.56.1"
-		#port = 5555
-		#player_num = 2
-		#threading.Thread(target = self.host_game, args = (host, port, player_num, )).start()
-		#self.host_game(host, port, player_num)
-		#threading.Thread(self.connect_to_game, (host,port))
-		#self.connect_to_game(host, port)
-		host = "192.168.56.1"
-		port = 5555
-		player_num = 2
+	def __init__(self, hosting, host, port, player_num = 2):
 		if hosting:
 			self.host_game(host, port, player_num)
 		else:
 			self.connect_to_game(host, port)
+		
 	
 	def reload(self, player_id, numb_of_players, starting_player, client):
 		pygame.init()
 		pygame.display.set_caption("Multi4Row")
 		self.client = client
 		self.player_id = player_id
+		self.number_of_players = numb_of_players
 		
 		self.clock = pygame.time.Clock()
 		self.FPS = 60
@@ -44,6 +35,9 @@ class Client:
 		
 		self.IMG = Imgs()
 		self.FUNKS = Funks(self.screen_size)
+  
+		self.update_player_thread = threading.Thread(target = self.threaded_nothing, args=())
+
 		
 		self.MAP = Map()
 		if numb_of_players == 2:
@@ -79,7 +73,7 @@ class Client:
 		self.grid_border_surf = pygame.Surface((self.gridsize + ( 2 * self.grid_border_thickness), self.gridsize + ( 2 * self.grid_border_thickness)))
 		self.grid_border_surf.fill(self.colors["white"])
 		
-		########################### NETWORKING STUFF ############################################################################
+		
 		
 		
 		self.start_pos = (self.offset_grid, self.offset_grid - self.cellsize - 10)        
@@ -108,28 +102,24 @@ class Client:
 		while self.running:
 			self.clock_tick()
 			self.window_events()
-   
 			if not self.win:
 				self.players()
 
 			winner = self.check_win()
 			if winner != 0.0:
-				if winner == 1:
-					self.p0.win_particles()
-				else:
-					for p in self.other_players:
-						if p.id == winner:
-							p.win_particles()
-       
+				self.win_particles(self.colors[self.colors_to_id[winner]])
+	
 				self.FUNKS.createtext("winner_text", [0, -int(self.screen_size[0]//24 //0.8)], self.screen_size[0]//24, "Player: "+str(winner)+" Won!", (187, 187, 187))
 				self.win = True
-   
-			self.render()
 	
-	def networking(self):
-		p2_pos = self.read_pos(self.N.send(self.make_pos((self.p0.x, self.p0.y))))
-		self.other_players[0].x, self.other_players[0].y = p2_pos
-		
+			self.render()
+   
+		self.exitgame()
+	
+	def win_particles(self, color):
+		for i in range(100):
+			self.FUNKS.particles.append([[self.offset_grid + (self.gridsize/2), self.offset_grid + (self.gridsize/2)], [random.randint(-60, 60)/10, random.randint(-60, 60)/10 ], random.randint(30, 100), color])
+	
 			
 	def clock_tick(self):
 		self.clock.tick(self.FPS)
@@ -143,25 +133,44 @@ class Client:
 			self.p0 = Player(self.player_id, (self.p0.x, self.start_pos[1]), self.p0.gridpos_x, self.colors[self.colors_to_id[self.player_id]], self.gridsize, self.cellsize, self.offset_grid, self.screen_size, self.FUNKS, self.game_map, self.map_dimensions, self.client)
 			self.FUNKS.shakes.append([[0,0],[random.randint(-5, 5), random.randint(-5, 5)], 0.5, 2, 2])
 			self.player_turn += 1
-    
+	
 		self.p0.move(self.dt, self.FPS)		
-
+  		
+		self.check_if_allready_listening()			
+  
 		ids_to_add = []
-		for i, p in sorted(enumerate(self.other_players), reverse = True):
+		for i, p in sorted(enumerate(self.other_players), reverse = True):			
 			if p.ready_to_reset:
-				ids_to_add.append([p.id, p.x, p.gridpos_x])
+				ids_to_add.append([p.id, p.x, p.gridpos_x, p.client])
 				self.other_players.pop(i)
 				self.FUNKS.shakes.append([[0,0],[random.randint(-5, 5), random.randint(-5, 5)], 0.5, 2, 2])
 				self.player_turn += 1
 				
 		for i in ids_to_add:
-			self.other_players.append(OtherPlayer(i[0], (i[1], self.start_pos[1]), i[2], self.colors[self.colors_to_id[i[0]]], self.gridsize, self.cellsize, self.offset_grid, self.screen_size, self.FUNKS, self.game_map, self.map_dimensions, self.client))
+			self.other_players.append(OtherPlayer(i[0], (i[1], self.start_pos[1]), i[2], self.colors[self.colors_to_id[i[0]]], self.gridsize, self.cellsize, self.offset_grid, self.screen_size, self.FUNKS, self.game_map, self.map_dimensions, i[3]))
 			
 		if self.player_turn > len(self.other_players)+1:
 			self.player_turn = 1
 
 		self.turn_system()
+  
+	def check_if_allready_listening(self):
+		if not self.update_player_thread.is_alive():
+			self.update_player_thread = threading.Thread(target = self.threaded_update_data, args = ())
+			self.update_player_thread.start()
+
 	
+	def threaded_update_data(self):
+		data = self.recieve_data(self.client)
+		if data:
+			for i, p in sorted(enumerate(self.other_players), reverse = True):
+				if len(data) == 3 and p.id == data[0]:
+					if not p.lock_movement:
+						p.x = data[1] * self.cellsize + self.offset_grid
+						p.gridpos_x = data[1]
+					if data[2] == 1:
+						p.fall()
+			sys.exit()
 	
   
 	def turn_system(self):
@@ -188,18 +197,23 @@ class Client:
 		for event in pygame.event.get():
 			if event.type == pygame.QUIT:
 				self.exitgame()
-		
+	
+	def threaded_nothing(self):
+		sys.exit()
+ 
 	def render(self):
 		self.buffer_screen.fill(self.colors["background"])
 		self.screen.fill(self.colors["background"])
 		self.render_grid()
 		if len(self.FUNKS.particles) > 0:
 			self.FUNKS.draw_particles(self.buffer_screen, 0.5, self.dt, self.FPS)
-		self.render_players()
+		
+  		
 		
 		if self.win:
 			self.render_win()
-		
+		else:
+			self.render_players()
 
 		self.FUNKS.draw_screenshake(self.screen, self.buffer_screen, self.dt, self.FPS)
 		self.FUNKS.texthandler("fps_display", self.screen)
@@ -213,8 +227,6 @@ class Client:
 		for y, line in enumerate(self.game_map):
 			for x, chip in enumerate(line):
 				if chip != 0.0:
-					#rect = (x * self.cellsize + self.offset_grid, y * self.cellsize + self.offset_grid, self.cellsize, self.cellsize)
-					#pygame.draw.rect(self.buffer_screen, self.colors[self.colors_to_id[chip]], rect)
 					pygame.draw.circle(self.buffer_screen, self.colors[self.colors_to_id[chip]], (x * self.cellsize + self.offset_grid + (self.cellsize/2) , y * self.cellsize + self.offset_grid + (self.cellsize /2)), self.cellsize/2)
 		
 		
@@ -227,10 +239,10 @@ class Client:
 		self.winning_screen_timer_var += 1 *self.dt*self.FPS
 		if self.winning_screen_timer_var >= self.winning_screen_timer_val:
 			self.win = False
-			self.reload()
+			self.running = False
+	
 	
 	def check_win(self):
-		
 		for y, line in sorted(enumerate(self.game_map), reverse = True): #starting bottom left
 			for x, chip in enumerate(line):
 				if chip != 0:
@@ -285,22 +297,23 @@ class Client:
 	from str to list use: list = read_str(str)
 	
 	'''
- 
 	def host_game(self, host, port, numb_players):
 		server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		try:
 			server.bind((host, port))
 		except socket.error as e:
-			print(e)
-	
-		server.listen(numb_players-1)
-		print("Waiting for connection.. Server started")
+			pass
+			#print(e)
+
+		listeners = numb_players -1
+		server.listen(listeners)
+		#print("Waiting for connection.. Server started")
 		player_id = 2
 		starting_player = random.randint(1, numb_players)		
   
 		while True:
 			client, addr = server.accept()
-			print("Connected to: "+ str(addr))
+			#print("Connected to: "+ str(addr))
 			self.send_data([player_id, numb_players, starting_player], client)
 			
 			
@@ -309,41 +322,38 @@ class Client:
 				break
 		threading.Thread(target=self.reload, args=(1, numb_players, starting_player, client, )).start()
 		server.close()
+		sys.exit()
 
-	
 	def connect_to_game(self, host, port):
 		client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		client.connect((host, port))
 		#must get its own id, numb_of_players, starting_player
 		data = self.recieve_data(client)
 
-
 		threading.Thread(target=self.reload, args=(data[0], data[1], data[2], client, )).start()
-
+		sys.exit()
  
 	
 	def send_data(self, data, client, encoding = 'utf-8'):
 		st = self.make_str(data)
 		try:
-			client.send(st.encode(encoding))
+			client.sendall(st.encode(encoding))
 		except:
-			print("Error sending data")
+			pass
+			#print("Error sending data")
    
-		print("Sent data.. "+st)
+		#print("Sent data.. "+st)
 	
 
 	def recieve_data(self, client, buff_size = 1024, decoding = 'utf-8'):
 		try:
 			data = client.recv(buff_size).decode(decoding)
-			if not data:
-				#client.close()
-				print("Disconnected.. no data received")
-			else:
-				print("Received: "+data)
+			if data:
+				#print("Received: "+data)
 				return self.read_str(data)
 
 		except:
-			print("Error while waiting for data")
+			#print("Error while waiting for data")
 			return []
    
 	
