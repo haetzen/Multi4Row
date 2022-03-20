@@ -92,7 +92,7 @@ class Main:
 		sys.exit()
 	
 	
-	def getPublicIp(seöf):
+	def get_public_ip(self):
 		data = str(urlopen('http://checkip.dyndns.com/').read())
 		# data = '<html><head><title>Current IP Check</title></head><body>Current IP Address: 65.96.168.198</body></html>\r\n'
 
