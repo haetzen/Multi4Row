@@ -1,3 +1,4 @@
+
 import threading, sys, socket
 from client import Client
 from tkinter import * 
@@ -9,7 +10,7 @@ from funks import Funks
 
 class Main:
 	def __init__(self):
-     
+	
 		print(f"Ip: {self.get_ip()}")
 		self.tink = tk.Tk()
 		self.tink.title("Select_Gamemode")
@@ -105,3 +106,6 @@ class Main:
 	
 if __name__ == '__main__':
 	Main()
+	
+ 
+ 
